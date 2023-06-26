@@ -1,13 +1,13 @@
 import * as THREE from "three";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-import Stats from "three/examples/jsm/libs/stats.module";
+import { OrbitControls } from "three/addons/controls/OrbitControls";
+import Stats from "three/addons/libs/stats.module";
 import GUI from "lil-gui";
 
 import "./style.css";
 import { ShaderMaterial } from "three";
 
-import sphereVertexShader from "./shaders/sphere/vertex.glsl";
-import sphereFragmentShader from "./shaders/sphere/fragment.glsl";
+import myquadVertexShader from "./shaders/myquad/vertex.glsl";
+import myquadFragmentShader from "./shaders/myquad/fragment.glsl";
 
 const conf = {
   bg: "#393939",
@@ -18,11 +18,12 @@ const conf = {
 window.conf = conf;
 
 //
-// scene
+// scenes: 1 and 2
 //
 
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(conf.bg);
+const scene1 = new THREE.Scene();
+const scene2 = new THREE.Scene();
+scene1.background = scene2.background = new THREE.Color(conf.bg);
 
 THREE.ColorManagement.legacyMode = false;
 
@@ -40,6 +41,36 @@ const camera = new THREE.PerspectiveCamera(
 camera.position.set(7, 4, 21);
 
 //
+// cubeCameras
+//
+
+const cubeCamera1 = new THREE.CubeCamera(
+  0.1,
+  100000,
+  new THREE.WebGLCubeRenderTarget(128, {
+    // generateMipmaps: true,
+    // minFilter: THREE.LinearMipmapLinearFilter,
+  })
+);
+cubeCamera1.position.x = 0;
+cubeCamera1.position.y = 1;
+cubeCamera1.position.z = 5;
+scene1.add(cubeCamera1);
+
+const cubeCamera2 = new THREE.CubeCamera(
+  0.1,
+  100000,
+  new THREE.WebGLCubeRenderTarget(128, {
+    // generateMipmaps: true,
+    // minFilter: THREE.LinearMipmapLinearFilter,
+  })
+);
+cubeCamera2.position.x = 4;
+cubeCamera2.position.y = 1;
+cubeCamera2.position.z = 0;
+scene2.add(cubeCamera2);
+
+//
 // 📷 renderer
 //
 
@@ -47,7 +78,6 @@ const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
 
-renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.toneMapping = THREE.ACESFilmicToneMapping; // https://threejs.org/docs/#api/en/constants/Renderer
 // renderer.toneMappingExposure = 2.3;
 // renderer.physicallyCorrectLights = true;
@@ -66,32 +96,67 @@ const controls = new OrbitControls(camera, renderer.domElement);
 
 // 🧊 cube
 
-const cube = new THREE.Mesh(
+const cube1 = new THREE.Mesh(
   new THREE.BoxGeometry(2, 2, 2),
   new THREE.MeshStandardMaterial({ color: "blue" })
 );
-cube.castShadow = true;
-cube.position.y = 1;
-scene.add(cube);
+cube1.castShadow = true;
+cube1.position.y = 1;
+scene1.add(cube1);
+
+const cube2 = new THREE.Mesh(
+  new THREE.BoxGeometry(2, 2, 2),
+  new THREE.MeshStandardMaterial({ color: "purple" })
+);
+cube2.castShadow = true;
+cube2.position.y = 1;
+scene2.add(cube2);
+
+//
+// myquad
+//
+
+const myquad = new THREE.Mesh(
+  new THREE.PlaneGeometry(1, 1),
+  // new THREE.MeshStandardMaterial({ color: "red" })
+  new ShaderMaterial({
+    uniforms: {
+      map1: { value: cubeCamera1.renderTarget.texture },
+      map2: { value: cubeCamera2.renderTarget.texture },
+    },
+    vertexShader: myquadVertexShader,
+    fragmentShader: myquadFragmentShader,
+  })
+);
+myquad.position.x = 3;
+myquad.position.y = 2;
+scene1.add(myquad);
 
 // 🏀 sphere
 
-const sphere = new THREE.Mesh(
+const sphere1 = new THREE.Mesh(
   new THREE.IcosahedronGeometry(1, 1),
-  new THREE.MeshStandardMaterial({ color: "red", flatShading: true })
-  // new ShaderMaterial({
-  //   vertexShader: sphereVertexShader,
-  //   fragmentShader: sphereFragmentShader,
-  // })
+  new THREE.MeshLambertMaterial({
+    envMap: cubeCamera1.renderTarget.texture,
+  })
 );
-sphere.castShadow = true;
-sphere.position.y = 1;
-sphere.position.z = 5;
-scene.add(sphere);
+sphere1.castShadow = true;
+sphere1.position.copy(cubeCamera1.position); // position the sphere at the cubeCamera
+scene1.add(sphere1);
+
+const sphere2 = new THREE.Mesh(
+  new THREE.IcosahedronGeometry(1, 1),
+  new THREE.MeshLambertMaterial({
+    envMap: cubeCamera2.renderTarget.texture,
+  })
+);
+sphere2.castShadow = true;
+sphere2.position.copy(cubeCamera2.position); // position the sphere at the cubeCamera
+scene1.add(sphere2);
 
 // 🛬 ground plane
 
-const ground = new THREE.Mesh(
+const ground1 = new THREE.Mesh(
   new THREE.BoxGeometry(100, 100, 0.1),
   new THREE.MeshStandardMaterial({
     color: "gray",
@@ -99,10 +164,13 @@ const ground = new THREE.Mesh(
     opacity: 0.8,
   })
 );
-ground.position.y = -0.1 / 2;
-ground.receiveShadow = true;
-ground.rotation.x = -Math.PI / 2;
-scene.add(ground);
+ground1.position.y = -0.1 / 2;
+ground1.receiveShadow = true;
+ground1.rotation.x = -Math.PI / 2;
+scene1.add(ground1);
+
+const ground2 = ground1.clone();
+scene2.add(ground2);
 
 //
 // 💡 lights
@@ -110,34 +178,39 @@ scene.add(ground);
 
 // 🔦 spot
 
-const spotLight = new THREE.SpotLight("white");
-spotLight.position.set(15, 15, 15);
-spotLight.penumbra = 1;
-spotLight.castShadow = true;
-spotLight.intensity = 2;
-spotLight.shadow.bias = -0.0001;
+const spotLight1 = new THREE.SpotLight("white");
+spotLight1.position.set(15, 15, 15);
+spotLight1.penumbra = 1;
+spotLight1.castShadow = true;
+spotLight1.intensity = 2;
+spotLight1.shadow.bias = -0.0001;
 // spotLight.shadow.mapSize.width = 1024 * 4;
 // spotLight.shadow.mapSize.height = 1024 * 4;
 // spotLight.shadow.camera.near = 0.5; // default 0.5
 // spotLight.shadow.camera.far = 10; // default 500
+scene1.add(spotLight1);
 
-scene.add(spotLight);
+const spotLight2 = spotLight1.clone();
+scene2.add(spotLight2);
 // scene.add(new THREE.SpotLightHelper(spotLight));
 
 // 🌤️ ambient
 
-const ambientLight = new THREE.AmbientLight();
-ambientLight.intensity = 0.2;
-scene.add(ambientLight);
+const ambientLight1 = new THREE.AmbientLight();
+ambientLight1.intensity = 0.2;
+scene1.add(ambientLight1);
+
+const ambientLight2 = ambientLight1.clone();
+scene2.add(ambientLight2);
 
 //
 // 📐 dummies
 //
 
 const gridHelper = new THREE.GridHelper(30, 30);
-scene.add(gridHelper);
+scene1.add(gridHelper);
 const axesHelper = new THREE.AxesHelper(5);
-scene.add(axesHelper);
+scene1.add(axesHelper);
 
 //
 // 🎛️ GUI
@@ -148,7 +221,9 @@ const gui = new GUI(); // see: https://lil-gui.georgealways.com/
 gui
   .addColor(conf, "bg")
   .name("bg")
-  .onChange((val) => (scene.background = new THREE.Color(val)));
+  .onChange(
+    (val) => (scene1.background = scene2.background = new THREE.Color(val))
+  );
 
 gui
   .addFolder("camera")
@@ -179,7 +254,18 @@ gui
 //
 
 function animate(t) {
-  renderer.render(scene, camera);
+  // Update the render target cube
+  sphere1.visible = false;
+  cubeCamera1.update(renderer, scene1);
+  sphere1.visible = true;
+
+  sphere2.visible = false;
+  cubeCamera2.update(renderer, scene2);
+  sphere2.visible = true;
+
+  renderer.render(scene1, camera);
+  // renderer.render(scene2, camera);
+
   stats.update();
 }
 renderer.setAnimationLoop(animate);

@@ -1,3 +1,6 @@
+varying vec3 vReflect;
+varying vec3 vNormal;
+
 void main() {
   //
   // gl_Position
@@ -14,5 +17,11 @@ void main() {
   // see: https://www.youtube.com/watch?v=Sukvxf7FfYM&t=961s
   //
 
-  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  vec4 mvPosition = viewMatrix * modelMatrix * vec4(position, 1.0);
+  vec3 worldNormal = normalize(mat3(modelMatrix) * normal);
+  vec3 viewDir = normalize(-mvPosition.xyz);
+
+  vReflect = reflect(viewDir, worldNormal);
+
+  gl_Position = projectionMatrix * mvPosition;
 }
