@@ -1,0 +1,21 @@
+{
+  "name": "tpl-three",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "lil-gui": "^0.17.0",
+    "three": "^0.146.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.146.0",
+    "typescript": "^4.6.4",
+    "vite": "^4.0.0",
+    "vite-plugin-glsl": "^1.0.0"
+  }
+}

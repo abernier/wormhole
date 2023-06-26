@@ -1,0 +1,29 @@
+{
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "waitFor": "onCreateCommand",
+  "updateContentCommand": "npm ci",
+  "postCreateCommand": "",
+  "postAttachCommand": "npm run dev -- --port 5173",
+  "customizations": {
+    "codespaces": {
+      "openFiles": ["src/main.js"]
+    },
+    "vscode": {
+      "settings": {},
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "slevesque.shader",
+        "raczzalan.webgl-glsl-editor"
+      ]
+    }
+  },
+  "portsAttributes": {
+    "5173": {
+      "label": "Vite dev server",
+      "onAutoForward": "openPreview"
+    }
+  },
+  "forwardPorts": [5173]
+}
